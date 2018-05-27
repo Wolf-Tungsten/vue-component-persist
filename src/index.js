@@ -5,42 +5,43 @@ export default function (Vue, {
   write = (k, v) => localStorage.setItem(k, v),
   clear = k => localStorage.removeItem(k)
 } = {}) {
-  const cache = {}
+  const store = new Proxy({}, {
+    get (target, key) {
+      return read(key) && JSON.parse(read(key))
+    },
+    set (target, key, value) {
+      write(key, JSON.stringify(value))
+    },
+    deleteProperty (target, key) {
+      clear(key)
+    }
+  })
 
   Vue.mixin({
     beforeCreate() {
-      this.$persist = (names, storeName = defaultStoreName, storeExpiration = defaultExpiration) => {
-        let store = cache[storeName] = JSON.parse(read(storeName) || '{}')
-        store.data = store.data || {}
-
-        if (isExpired(store.expiration)) {
-          clear(storeName)
-          store = {
-            data: {},
-            expiration: getExpiration(storeExpiration)
+      this.$persist = obj => {
+        Object.getOwnPropertyNames(obj).map(prop => {
+          let config = obj[prop]
+          if (typeof config === 'string') {
+            config = { key: config }
           }
-        }
+          config = Object.assign({ expiration: 0 }, config)
 
-        if (!store.expiration) {
-          store.expiration = getExpiration(storeExpiration)
-        }
-
-        this._persistWatchers = this._persistWatchers || []
-
-        for (const name of names) {
-          if (typeof store.data[name] !== 'undefined') {
-            this[name] = store.data[name]
+          if (store[config.key]) {
+            if (isExpired(store[config.key].expiration)) {
+              delete store[config.key]
+            } else {
+              this[prop] = store[config.key].data
+            }
           }
 
-          if (this._persistWatchers.indexOf(name) === -1) {
-            this._persistWatchers.push(name)
-
-            this.$watch(name, val => {
-              store.data[name] = val
-              write(storeName, JSON.stringify(store))
-            }, { deep: true })
-          }
-        }
+          this.$watch(prop, val => {
+            store[config.key] = {
+              data: val,
+              expiration: getExpiration(config.expiration)
+            }
+          }, { deep: true })
+        })
       }
     },
 
