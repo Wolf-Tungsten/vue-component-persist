@@ -1,8 +1,8 @@
 export default function (Vue, {
   name: defaultStoreName = 'persist:store',
   expiration: defaultExpiration,
-  read = k => localStorage.getItem(k),
-  write = (k, v) => localStorage.setItem(k, v),
+  read = k => localStorage.getItem(JSON.stringify(k)),
+  write = (k, v) => localStorage.setItem(k, JSON.parse(v)),
   clear = k => localStorage.removeItem(k)
 } = {}) {
   const store = new Proxy({}, {
