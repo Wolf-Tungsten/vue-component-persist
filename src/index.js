@@ -11,6 +11,7 @@ export default function (Vue, {
     },
     set (target, key, value) {
       write(key, JSON.stringify(value))
+      return true
     },
     deleteProperty (target, key) {
       clear(key)
