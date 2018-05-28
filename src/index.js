@@ -7,10 +7,10 @@ export default function (Vue, {
 } = {}) {
   const store = new Proxy({}, {
     get (target, key) {
-      return read(key) && JSON.parse(read(key))
+      return read(key)
     },
     set (target, key, value) {
-      write(key, JSON.stringify(value))
+      write(key, value)
       return true
     },
     deleteProperty (target, key) {
