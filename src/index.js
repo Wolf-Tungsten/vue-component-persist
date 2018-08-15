@@ -5,18 +5,31 @@ export default function (Vue, {
   write = (k, v) => localStorage.setItem(k, JSON.stringify(v)),
   clear = k => localStorage.removeItem(k)
 } = {}) {
-  const store = new Proxy({}, {
-    get (target, key) {
+  // const store = new Proxy({}, {
+  //   get (target, key) {
+  //     return read(key)
+  //   },
+  //   set (target, key, value) {
+  //     write(key, value)
+  //     return true
+  //   },
+  //   deleteProperty (target, key) {
+  //     clear(key)
+  //   }
+  // })
+
+  const store = {
+    get (key) {
       return read(key)
     },
-    set (target, key, value) {
+    set (key, value) {
       write(key, value)
       return true
     },
-    deleteProperty (target, key) {
+    delete(key) {
       clear(key)
     }
-  })
+  }
 
   Vue.mixin({
     beforeCreate() {
@@ -28,19 +41,19 @@ export default function (Vue, {
           }
           config = Object.assign({ expiration: 0 }, config)
 
-          if (store[config.key]) {
-            if (isExpired(store[config.key].expiration)) {
-              delete store[config.key]
+          if (store.get(config.key)) {
+            if (isExpired(store.get(config.key).expiration)) {
+              store.delete(config.key)
             } else {
-              this[prop] = store[config.key].data
+              this[prop] = store.get(config.key).data
             }
           }
 
           this.$watch(prop, val => {
-            store[config.key] = {
+            store.set(config.key,{
               data: val,
               expiration: getExpiration(config.expiration)
-            }
+            })
           }, { deep: true })
         })
       }
